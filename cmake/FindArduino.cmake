@@ -124,7 +124,7 @@ function(arduino_get_preference ALIST KEY OUT_VALUE)
     endforeach()
 endfunction()
 
-function(arduino_get_preferences)
+function(arduino_generate_preferences)
     execute_process(
         COMMAND "${ARDUINO_EXECUTABLE}" --get-pref
         OUTPUT_VARIABLE ARDUINO_PREFERENCES_CONTENT)
@@ -161,7 +161,7 @@ endfunction()
 find_package(PythonInterp REQUIRED)
 find_program(ARDUINO_EXECUTABLE NAMES arduino)
 
-arduino_get_preferences()
+arduino_generate_preferences()
 arduino_get_preference("${ARDUINO_PREFERENCES}" "runtime.ide.path" ARDUINO_IDE_PATH)
 arduino_get_preference("${ARDUINO_PREFERENCES}" "runtime.platform.path" ARDUINO_PLATFORM_PATH)
 
