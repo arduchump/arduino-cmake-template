@@ -115,7 +115,7 @@ endfunction()
 
 function(_arduino_get_preference ALIST KEY OUT_VALUE)
     set(${OUT_VALUE} "" PARENT_SCOPE)
-    foreach(PREFERENCE ${ALIST})
+    foreach(PREFERENCE ${${ALIST}})
         arduino_split_preference("${PREFERENCE}" GOT_KEY GOT_VALUE)
         if(GOT_KEY STREQUAL "${KEY}")
             set(${OUT_VALUE} "${GOT_VALUE}" PARENT_SCOPE)
@@ -125,8 +125,26 @@ function(_arduino_get_preference ALIST KEY OUT_VALUE)
 endfunction()
 
 function(arduino_get_preference KEY OUT_VALUE)
-    _arduino_get_preference("${ARDUINO_PREFERENCES}" "${KEY}" PREFERENCES)
-    set(${OUT_VALUE} "${PREFERENCES}" PARENT_SCOPE)
+    _arduino_get_preference(ARDUINO_PREFERENCES "${KEY}" PREFERENCE)
+    set(${OUT_VALUE} "${PREFERENCE}" PARENT_SCOPE)
+endfunction()
+
+function(arduino_get_expanded_preference KEY OUT_VALUE)
+    arduino_get_preference("${KEY}" PREFERENCE)
+
+    message("Enter expand preferences")
+    string(REGEX MATCHALL "\\{[^\\}]+\\}" MATCHED_RESULTS "${PREFERENCE}")
+    foreach(ARESULT ${MATCHED_RESULTS})
+        string(LENGTH "${ARESULT}" ARESULT_LENGTH)
+        math(EXPR ARESULT_LENGTH "${ARESULT_LENGTH} - 2")
+        string(SUBSTRING "${ARESULT}" 1 ${ARESULT_LENGTH} ARESULT)
+
+        arduino_get_expanded_preference("${ARESULT}" GOT_VALUE)
+        string(REPLACE "{${ARESULT}}" "${GOT_VALUE}" PREFERENCE "${PREFERENCE}")
+    endforeach()
+    message("Exit expand preferences")
+
+    set(${OUT_VALUE} "${PREFERENCE}" PARENT_SCOPE)
 endfunction()
 
 function(arduino_generate_preferences)
@@ -135,8 +153,8 @@ function(arduino_generate_preferences)
         OUTPUT_VARIABLE ARDUINO_PREFERENCES_CONTENT)
 
     string_splitlines("${ARDUINO_PREFERENCES_CONTENT}" ARDUINO_PREFERENCES)
-    _arduino_get_preference("${ARDUINO_PREFERENCES}" "runtime.ide.path" ARDUINO_IDE_PATH)
-    _arduino_get_preference("${ARDUINO_PREFERENCES}" "runtime.platform.path" ARDUINO_PLATFORM_PATH)
+    _arduino_get_preference(ARDUINO_PREFERENCES "runtime.ide.path" ARDUINO_IDE_PATH)
+    _arduino_get_preference(ARDUINO_PREFERENCES "runtime.platform.path" ARDUINO_PLATFORM_PATH)
 
     # Parse boards.txt, platform.txt, programmers.txt
     file(READ "${ARDUINO_PLATFORM_PATH}/boards.txt" ARDUINO_BOARDS_CONTENT)
@@ -159,7 +177,6 @@ function(arduino_generate_preferences)
             list(APPEND NEW_PREFERENCES "${PREFERENCE}")
         endif()
     endforeach()
-
     set(ARDUINO_PREFERENCES "${NEW_PREFERENCES}" PARENT_SCOPE)
 endfunction()
 
@@ -170,7 +187,6 @@ arduino_generate_preferences()
 arduino_get_preference("runtime.ide.path" ARDUINO_IDE_PATH)
 arduino_get_preference("runtime.platform.path" ARDUINO_PLATFORM_PATH)
 
-message("ARDUINO_PREFERENCES : ${ARDUINO_PREFERENCES}")
-message("ARDUINO_IDE_PATH : ${ARDUINO_IDE_PATH}")
-message("ARDUINO_PLATFORM_PATH : ${ARDUINO_PLATFORM_PATH}")
+arduino_get_expanded_preference("tools.avrdude.program.pattern" KKND_PATH)
 
+message("KKND_PATH : ${KKND_PATH}")
