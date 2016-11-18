@@ -113,7 +113,7 @@ function(arduino_split_preference ASTRING OUT_KEY OUT_VALUE)
     set(${OUT_VALUE} "${GOT_VALUE}" PARENT_SCOPE)
 endfunction()
 
-function(arduino_get_preference ALIST KEY OUT_VALUE)
+function(_arduino_get_preference ALIST KEY OUT_VALUE)
     set(${OUT_VALUE} "" PARENT_SCOPE)
     foreach(PREFERENCE ${ALIST})
         arduino_split_preference("${PREFERENCE}" GOT_KEY GOT_VALUE)
@@ -124,14 +124,19 @@ function(arduino_get_preference ALIST KEY OUT_VALUE)
     endforeach()
 endfunction()
 
+function(arduino_get_preference KEY OUT_VALUE)
+    _arduino_get_preference("${ARDUINO_PREFERENCES}" "${KEY}" PREFERENCES)
+    set(${OUT_VALUE} "${PREFERENCES}" PARENT_SCOPE)
+endfunction()
+
 function(arduino_generate_preferences)
     execute_process(
         COMMAND "${ARDUINO_EXECUTABLE}" --get-pref
         OUTPUT_VARIABLE ARDUINO_PREFERENCES_CONTENT)
 
     string_splitlines("${ARDUINO_PREFERENCES_CONTENT}" ARDUINO_PREFERENCES)
-    arduino_get_preference("${ARDUINO_PREFERENCES}" "runtime.ide.path" ARDUINO_IDE_PATH)
-    arduino_get_preference("${ARDUINO_PREFERENCES}" "runtime.platform.path" ARDUINO_PLATFORM_PATH)
+    _arduino_get_preference("${ARDUINO_PREFERENCES}" "runtime.ide.path" ARDUINO_IDE_PATH)
+    _arduino_get_preference("${ARDUINO_PREFERENCES}" "runtime.platform.path" ARDUINO_PLATFORM_PATH)
 
     # Parse boards.txt, platform.txt, programmers.txt
     file(READ "${ARDUINO_PLATFORM_PATH}/boards.txt" ARDUINO_BOARDS_CONTENT)
@@ -162,7 +167,10 @@ find_package(PythonInterp REQUIRED)
 find_program(ARDUINO_EXECUTABLE NAMES arduino)
 
 arduino_generate_preferences()
-arduino_get_preference("${ARDUINO_PREFERENCES}" "runtime.ide.path" ARDUINO_IDE_PATH)
-arduino_get_preference("${ARDUINO_PREFERENCES}" "runtime.platform.path" ARDUINO_PLATFORM_PATH)
+arduino_get_preference("runtime.ide.path" ARDUINO_IDE_PATH)
+arduino_get_preference("runtime.platform.path" ARDUINO_PLATFORM_PATH)
 
 message("ARDUINO_PREFERENCES : ${ARDUINO_PREFERENCES}")
+message("ARDUINO_IDE_PATH : ${ARDUINO_IDE_PATH}")
+message("ARDUINO_PLATFORM_PATH : ${ARDUINO_PLATFORM_PATH}")
+
