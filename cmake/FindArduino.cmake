@@ -147,7 +147,15 @@ function(arduino_get_preferences OUT_PREFERENCES)
     string_splitlines("${ARDUINO_PROGRAMMERS_CONTENT}" TEMP_PREFERENCES)
     list(APPEND ARDUINO_PREFERENCES ${TEMP_PREFERENCES})
 
-    set(${OUT_PREFERENCES} ${ARDUINO_PREFERENCES} PARENT_SCOPE)
+    # Only real preference item could be place into list
+    set(NEW_PREFERENCES "")
+    foreach(PREFERENCE ${ARDUINO_PREFERENCES})
+        if(PREFERENCE MATCHES ".*=.*")
+            list(APPEND NEW_PREFERENCES "${PREFERENCE}")
+        endif()
+    endforeach()
+
+    set(${OUT_PREFERENCES} "${NEW_PREFERENCES}" PARENT_SCOPE)
 endfunction()
 
 find_package(PythonInterp REQUIRED)
