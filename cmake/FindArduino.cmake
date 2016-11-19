@@ -117,11 +117,43 @@ function(_arduino_get_preference ALIST KEY OUT_VALUE)
     set(${OUT_VALUE} "" PARENT_SCOPE)
     foreach(PREFERENCE ${${ALIST}})
         arduino_split_preference("${PREFERENCE}" GOT_KEY GOT_VALUE)
-        if(GOT_KEY STREQUAL "${KEY}")
+        if(GOT_KEY STREQUAL KEY)
             set(${OUT_VALUE} "${GOT_VALUE}" PARENT_SCOPE)
             return()
         endif()
     endforeach()
+endfunction()
+
+function(arduino_generate_prefix_key PARENT_KEY SUFFIX_KEY OUT_VALUE)
+    string(REPLACE "." ";" SUFFIX_KEY_PARTIES "${SUFFIX_KEY}")
+    list(LENGTH SUFFIX_KEY_PARTIES SUFFIX_KEY_PARTIES_LENGTH)
+
+    string(REPLACE "." ";" PARENT_KEY_PARTIES "${PARENT_KEY}")
+    list(LENGTH PARENT_KEY_PARTIES PARENT_KEY_PARTIES_LENGTH)
+
+    if(PARENT_KEY_PARTIES_LENGTH GREATER SUFFIX_KEY_PARTIES_LENGTH)
+        set(COUNTER ${SUFFIX_KEY_PARTIES_LENGTH})
+        while(${COUNTER} GREATER 0)
+            math(EXPR I "${PARENT_KEY_PARTIES_LENGTH} - 1 - (${SUFFIX_KEY_PARTIES_LENGTH} - ${COUNTER})")
+            list(REMOVE_AT PARENT_KEY_PARTIES ${I})
+            math(EXPR COUNTER "${COUNTER} - 1")
+        endwhile()
+
+        string(REPLACE ";" "." GENERATED_KEY "${PARENT_KEY_PARTIES}.${SUFFIX_KEY}")
+
+        if("${PARENT_KEY}" STREQUAL "${GENERATED_KEY}")
+            string(REPLACE "." ";" PARENT_KEY_PARTIES "${PARENT_KEY}")
+            list(LENGTH PARENT_KEY_PARTIES PARENT_KEY_PARTIES_LENGTH)
+            math(EXPR I "${PARENT_KEY_PARTIES_LENGTH} - 1")
+            list(REMOVE_AT PARENT_KEY_PARTIES ${I})
+
+            arduino_generate_prefix_key("${PARENT_KEY_PARTIES}" "${SUFFIX_KEY}" GENERATED_KEY)
+        endif()
+    else()
+        set(GENERATED_KEY "${SUFFIX_KEY}")
+    endif()
+
+    set(${OUT_VALUE} "${GENERATED_KEY}" PARENT_SCOPE)
 endfunction()
 
 function(arduino_get_preference KEY OUT_VALUE)
@@ -132,7 +164,6 @@ endfunction()
 function(arduino_get_expanded_preference KEY OUT_VALUE)
     arduino_get_preference("${KEY}" PREFERENCE)
 
-    message("Enter expand preferences")
     string(REGEX MATCHALL "\\{[^\\}]+\\}" MATCHED_RESULTS "${PREFERENCE}")
     foreach(ARESULT ${MATCHED_RESULTS})
         string(LENGTH "${ARESULT}" ARESULT_LENGTH)
@@ -140,9 +171,20 @@ function(arduino_get_expanded_preference KEY OUT_VALUE)
         string(SUBSTRING "${ARESULT}" 1 ${ARESULT_LENGTH} ARESULT)
 
         arduino_get_expanded_preference("${ARESULT}" GOT_VALUE)
+        if("${GOT_VALUE}" STREQUAL "")
+            arduino_generate_prefix_key("${KEY}" "${ARESULT}" PREFIXED_KEY)
+            if(NOT "${PREFIXED_KEY}" STREQUAL "${KEY}")
+                arduino_get_expanded_preference("${PREFIXED_KEY}" GOT_VALUE)
+            endif()
+        endif()
+        if("${GOT_VALUE}" STREQUAL "")
+            message(
+                FATAL_ERROR
+                "Failed to expand arduino environment variant \"${ARESULT}\" for \"${KEY}=${PREFERENCE}\"")
+        endif()
+
         string(REPLACE "{${ARESULT}}" "${GOT_VALUE}" PREFERENCE "${PREFERENCE}")
     endforeach()
-    message("Exit expand preferences")
 
     set(${OUT_VALUE} "${PREFERENCE}" PARENT_SCOPE)
 endfunction()
@@ -187,6 +229,7 @@ arduino_generate_preferences()
 arduino_get_preference("runtime.ide.path" ARDUINO_IDE_PATH)
 arduino_get_preference("runtime.platform.path" ARDUINO_PLATFORM_PATH)
 
-arduino_get_expanded_preference("tools.avrdude.program.pattern" KKND_PATH)
+arduino_get_expanded_preference("compiler.path" PREFERENCE)
 
-message("KKND_PATH : ${KKND_PATH}")
+message("PREFERENCE : ${PREFERENCE}")
+
