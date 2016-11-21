@@ -189,6 +189,16 @@ function(arduino_get_expanded_preference KEY OUT_VALUE)
     set(${OUT_VALUE} "${PREFERENCE}" PARENT_SCOPE)
 endfunction()
 
+function(arduino_get_expanded_preference2 KEY OUT_VALUE)
+    execute_process(
+        COMMAND "${PYTHON_EXECUTABLE}" cmake/ArduinoGetPref.py ${KEY}
+        OUTPUT_VARIABLE PREFERENCE)
+
+    string(STRIP "${PREFERENCE}" PREFERENCE)
+
+    set(${OUT_VALUE} "${PREFERENCE}" PARENT_SCOPE)
+endfunction()
+
 function(arduino_generate_preferences)
     execute_process(
         COMMAND "${ARDUINO_EXECUTABLE}" --get-pref
@@ -202,6 +212,7 @@ function(arduino_generate_preferences)
     file(READ "${ARDUINO_PLATFORM_PATH}/boards.txt" ARDUINO_BOARDS_CONTENT)
     file(READ "${ARDUINO_PLATFORM_PATH}/platform.txt" ARDUINO_PLATFORM_CONTENT)
     file(READ "${ARDUINO_PLATFORM_PATH}/programmers.txt" ARDUINO_PROGRAMMERS_CONTENT)
+
 
     string_splitlines("${ARDUINO_BOARDS_CONTENT}" TEMP_PREFERENCES)
     list(APPEND ARDUINO_PREFERENCES ${TEMP_PREFERENCES})
@@ -225,11 +236,11 @@ endfunction()
 find_package(PythonInterp REQUIRED)
 find_program(ARDUINO_EXECUTABLE NAMES arduino)
 
-arduino_generate_preferences()
-arduino_get_preference("runtime.ide.path" ARDUINO_IDE_PATH)
-arduino_get_preference("runtime.platform.path" ARDUINO_PLATFORM_PATH)
+arduino_get_expanded_preference2("runtime.tools.avr-gcc.path" ARDUINO_AVR_GCC_ROOT_PATH)
+arduino_get_expanded_preference2("compiler.path" ARDUINO_COMPILER_BASE_PATH)
+arduino_get_expanded_preference2("compiler.c.cmd" ARDUINO_C_COMPILER_CMD)
+arduino_get_expanded_preference2("compiler.cpp.cmd" ARDUINO_CXX_COMPILER_CMD)
+arduino_get_expanded_preference2("compiler.c.flags" ARDUINO_C_FLAGS)
+arduino_get_expanded_preference2("compiler.cpp.flags" ARDUINO_CXX_FLAGS)
 
-arduino_get_expanded_preference("compiler.path" PREFERENCE)
-
-message("PREFERENCE : ${PREFERENCE}")
 
