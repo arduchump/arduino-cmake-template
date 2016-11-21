@@ -243,4 +243,4 @@ arduino_get_expanded_preference2("compiler.cpp.cmd" ARDUINO_CXX_COMPILER_CMD)
 arduino_get_expanded_preference2("compiler.c.flags" ARDUINO_C_FLAGS)
 arduino_get_expanded_preference2("compiler.cpp.flags" ARDUINO_CXX_FLAGS)
 
-
+set(CMAKE_TOOLCHAIN_FILE cmake/ArduinoToolchain.cmake)
